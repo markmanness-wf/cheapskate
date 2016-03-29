@@ -1,0 +1,20 @@
+# stingy.frugal
+
+enum HealthCondition {
+     PASS = 1,
+     WARN = 2,
+     FAIL = 3,
+     UNKNOWN = 4
+}
+
+struct ServiceHealthStatus {
+       1: required string version = "1.0",
+       2: required HealthCondition status = HealthCondition.PASS,
+       3: required string message,
+       4: optional map<string,string> metadata,
+}
+
+service StingyService {
+        ServiceHealthStatus CheckServiceHealth()
+        string GetQuote()
+}
