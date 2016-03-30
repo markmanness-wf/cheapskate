@@ -6,6 +6,6 @@ Demo service using frugal.
 
 Run the following:-
 ```
-docker run -v "$(pwd):/data" drydock.workiva.org/workiva/frugal:35574 frugal --gen=go stingy.frugal
+docker run -u $UID -v "$(pwd):/data" drydock.workiva.org/workiva/frugal:35054 frugal --gen=go stingy.frugal
 ```
 
