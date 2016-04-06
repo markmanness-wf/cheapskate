@@ -1,0 +1,11 @@
+project: bash
+language: bash
+
+script:
+  - echo "All Ur Moniez Are Belong To Gnatsd"
+  - ./build.sh
+
+artifacts:
+  release:
+    - cheapskate/cheapskate
+    - client/client
