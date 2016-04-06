@@ -1,6 +1,8 @@
 project: bash
 language: bash
 
+runner_image: docker.webfilings.org/messaging/smithy-runner:2
+
 script:
   - echo "All Ur Moniez Are Belong To Gnatsd"
   - ./build.sh
