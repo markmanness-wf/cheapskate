@@ -26,7 +26,7 @@ func Usage() {
 func main() {
 	flag.Usage = Usage
 	var (
-		addr = flag.String("addr", nats.DefaultURL, "NATS address")
+		addr = flag.String("addr", "", "NATS address")
 		quotes = flag.String("quotes", "", "Path to quotes file")
 		topic = flag.String("topic", "stingy", "NATS topic to listen on")
 	)
@@ -49,7 +49,10 @@ func runServer(handler *Cheapskate, topic string, natsAddr string) error {
 
 	if natsAddr != "" {
 		natsOptions.Servers = []string{natsAddr}
+	} else if msgUrl := os.Getenv("MSG_URL"); msgUrl != "" {
+		natsOptions.Servers = []string{msgUrl}
 	}
+
 	conn, err := natsOptions.Connect()
 	if err != nil {
 		panic(err)

@@ -22,7 +22,7 @@ func Usage() {
 func main() {
 	flag.Usage = Usage
 	var (
-		addr   = flag.String("addr", nats.DefaultURL, "NATS address")
+		addr   = flag.String("addr", "", "NATS address")
 		topic  = flag.String("topic", "stingy", "NATS topic to connect to")
 		info   = flag.Bool("info", false, "Call the info method")
 		ping   = flag.Bool("ping", false, "Call the ping method")
@@ -38,7 +38,10 @@ func main() {
 
 	if *addr != "" {
 		natsOptions.Servers = []string{*addr}
+	} else if msgUrl := os.Getenv("MSG_URL"); msgUrl != "" {
+		natsOptions.Servers = []string{msgUrl}
 	}
+
 	conn, err := natsOptions.Connect()
 	if err != nil {
 		fmt.Printf("Error connecting to gnatsd: <%s>\n", err)
