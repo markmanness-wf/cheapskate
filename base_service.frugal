@@ -1,0 +1,14 @@
+include "base_model.frugal"
+
+namespace java com.workiva.frugal.api
+namespace py workiva_frugal_api
+namespace go workiva_frugal_api
+namespace js workiva_frugal_api
+namespace dart workiva_frugal_api
+
+service BaseService {
+    void ping()
+    base_model.ServiceHealthStatus CheckServiceHealth()
+    base_model.Info getInfo()
+}
+
