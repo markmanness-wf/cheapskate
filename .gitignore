@@ -1,0 +1,5 @@
+gen-go/
+cheapskate/cheapskate
+client/client
+base_model.frugal
+base_service.frugal

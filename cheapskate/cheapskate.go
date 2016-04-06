@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"log"
 	"os"
 	"time"
 	"math/rand"
@@ -11,6 +12,8 @@ import (
 	"github.com/nats-io/nats"
 
 	"github.com/danielrowles-wf/cheapskate/gen-go/stingy"
+	// w_service "github.com/danielrowles-wf/cheapskate/gen-go/workiva_frugal_api"
+	w_model "github.com/danielrowles-wf/cheapskate/gen-go/workiva_frugal_api_model"
 	"github.com/Workiva/frugal/lib/go"
 )
 
@@ -83,15 +86,42 @@ func NewCheapskate(fortune string) *Cheapskate {
 	return cs
 }
 
-func (h *Cheapskate) CheckServiceHealth(ctx *frugal.FContext) (*stingy.ServiceHealthStatus, error) {
+func (h *Cheapskate) Ping(ctx *frugal.FContext) error {
+	log.Printf("Someone called Ping()")
+	return nil
+}
+
+func (h *Cheapskate) GetInfo(ctx *frugal.FContext) (*w_model.Info, error) {
+	log.Printf("Someone called GetInfo()")
+
+	requests := int64(314)
+
+	info := w_model.NewInfo()
+	info.Name = "cheapskate"
+	info.Version = "0.0.1"
+	info.Repo = "git@github.com:danielrowles-wf/cheapskate.git"
+	info.ActiveRequests = &requests
+	info.Metadata = map[string]string{
+		"pies": "tasty",
+		"beer": "yummy",
+	}
+	return info, nil
+}
+
+func (h *Cheapskate) CheckServiceHealth(ctx *frugal.FContext) (*w_model.ServiceHealthStatus, error) {
+	log.Printf("Someone called CheckServiceHealth()")
+
 	cid := ctx.CorrelationID()
-	out := stingy.NewServiceHealthStatus()
-	out.Status = stingy.HealthCondition_PASS
+	out := w_model.NewServiceHealthStatus()
+	out.Status = w_model.HealthCondition_PASS
 	out.Message = fmt.Sprintf("All Ur <%s> Are Belong To DevOps", cid)
 	out.Metadata = map[string]string{
 		"pies": "tasty",
 		"beer": "yummy",
 		"corr": cid,
+	}
+	if len(h.quotes) > 0 {
+		out.Metadata["quote"] = h.quotes[rand.Intn(len(h.quotes))]
 	}
 	return out, nil
 }
