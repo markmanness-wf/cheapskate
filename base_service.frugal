@@ -8,7 +8,7 @@ namespace dart workiva_frugal_api
 
 service BaseService {
     void ping()
-    base_model.ServiceHealthStatus CheckServiceHealth()
+    base_model.ServiceHealthStatus checkServiceHealth()
     base_model.Info getInfo()
 }
 
