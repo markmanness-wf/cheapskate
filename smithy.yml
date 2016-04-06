@@ -1,11 +1,11 @@
-project: bash
-language: bash
-
-runner_image: docker.webfilings.org/messaging/smithy-runner:2
+project: golang
+language: golang
 
 script:
   - echo "All Ur Moniez Are Belong To Gnatsd"
-  - ./build.sh
+  - go get -d ./...
+  - cd ./cheapskate && go build -x .
+  - cd ./client && go build -x .
 
 artifacts:
   release:
