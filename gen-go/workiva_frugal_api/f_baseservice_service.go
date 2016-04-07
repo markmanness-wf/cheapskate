@@ -21,8 +21,11 @@ var _ = fmt.Printf
 var _ = bytes.Equal
 
 type FBaseService interface {
+	// A simple ping to see if the service is alive
 	Ping(ctx *frugal.FContext) (err error)
+	// Gen2 health check
 	CheckServiceHealth(ctx *frugal.FContext) (r *workiva_frugal_api_model.ServiceHealthStatus, err error)
+	// Get the current info about the service
 	GetInfo(ctx *frugal.FContext) (r *workiva_frugal_api_model.Info, err error)
 }
 
@@ -42,6 +45,7 @@ func NewFBaseServiceClient(t frugal.FTransport, p *frugal.FProtocolFactory) *FBa
 	}
 }
 
+// A simple ping to see if the service is alive
 func (f *FBaseServiceClient) Ping(ctx *frugal.FContext) (err error) {
 	errorC := make(chan error, 1)
 	resultC := make(chan struct{}, 1)
@@ -141,6 +145,7 @@ func (f *FBaseServiceClient) recvPingHandler(ctx *frugal.FContext, resultC chan<
 	}
 }
 
+// Gen2 health check
 func (f *FBaseServiceClient) CheckServiceHealth(ctx *frugal.FContext) (r *workiva_frugal_api_model.ServiceHealthStatus, err error) {
 	errorC := make(chan error, 1)
 	resultC := make(chan *workiva_frugal_api_model.ServiceHealthStatus, 1)
@@ -240,6 +245,7 @@ func (f *FBaseServiceClient) recvCheckServiceHealthHandler(ctx *frugal.FContext,
 	}
 }
 
+// Get the current info about the service
 func (f *FBaseServiceClient) GetInfo(ctx *frugal.FContext) (r *workiva_frugal_api_model.Info, err error) {
 	errorC := make(chan error, 1)
 	resultC := make(chan *workiva_frugal_api_model.Info, 1)

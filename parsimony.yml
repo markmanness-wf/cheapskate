@@ -1,0 +1,16 @@
+stingy.frugal:
+  path: "idl/stingy.frugal"
+  requires: ["base_model.frugal", "base_service.frugal"]
+
+base_service.frugal:
+  git:
+    repo: "github.com/danielrowles-wf/messaging-sdk"
+    ref: "d2714d24fb84836eda01500d49b9d60610e89649"
+  remote-target: "base_service.frugal"
+  requires: ["base_model.frugal"]
+
+base_model.frugal:
+  git:
+    repo: "github.com/danielrowles-wf/messaging-sdk"
+    ref: "d2714d24fb84836eda01500d49b9d60610e89649"
+  remote-target: "base_model.frugal"

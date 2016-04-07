@@ -17,12 +17,19 @@ var _ = bytes.Equal
 
 var _ = workiva_frugal_api_model.GoUnusedProtection__
 
-type BaseService interface {
+type BaseService interface { //All Thrift RPC services defined at Workiva inherit from this base service,
+	//which defines common operations that all services must implement.
+
+	// A simple ping to see if the service is alive
 	Ping() (err error)
+	// Gen2 health check
 	CheckServiceHealth() (r *workiva_frugal_api_model.ServiceHealthStatus, err error)
+	// Get the current info about the service
 	GetInfo() (r *workiva_frugal_api_model.Info, err error)
 }
 
+//All Thrift RPC services defined at Workiva inherit from this base service,
+//which defines common operations that all services must implement.
 type BaseServiceClient struct {
 	Transport       thrift.TTransport
 	ProtocolFactory thrift.TProtocolFactory
@@ -49,6 +56,7 @@ func NewBaseServiceClientProtocol(t thrift.TTransport, iprot thrift.TProtocol, o
 	}
 }
 
+// A simple ping to see if the service is alive
 func (p *BaseServiceClient) Ping() (err error) {
 	if err = p.sendPing(); err != nil {
 		return
@@ -121,6 +129,7 @@ func (p *BaseServiceClient) recvPing() (err error) {
 	return
 }
 
+// Gen2 health check
 func (p *BaseServiceClient) CheckServiceHealth() (r *workiva_frugal_api_model.ServiceHealthStatus, err error) {
 	if err = p.sendCheckServiceHealth(); err != nil {
 		return
@@ -194,6 +203,7 @@ func (p *BaseServiceClient) recvCheckServiceHealth() (value *workiva_frugal_api_
 	return
 }
 
+// Get the current info about the service
 func (p *BaseServiceClient) GetInfo() (r *workiva_frugal_api_model.Info, err error) {
 	if err = p.sendGetInfo(); err != nil {
 		return
