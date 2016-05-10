@@ -28,7 +28,7 @@ func main() {
 	var (
 		addr = flag.String("addr", "", "NATS address")
 		quotes = flag.String("quotes", "", "Path to quotes file")
-		topic = flag.String("topic", "stingy", "NATS topic to listen on")
+		topic = flag.String("topic", "", "NATS topic to listen on")
 	)
 	flag.Parse()
 
@@ -51,6 +51,15 @@ func runServer(handler *Cheapskate, topic string, natsAddr string) error {
 		natsOptions.Servers = []string{natsAddr}
 	} else if msgUrl := os.Getenv("MSG_URL"); msgUrl != "" {
 		natsOptions.Servers = []string{msgUrl}
+	}
+
+	// TODO - messaging sdk once MSG-109 is done will change how this is done
+	if topic == "" {
+		if e := os.Getenv("MSG_HEALTH_TOPIC"); e != "" {
+			topic = e
+		} else {
+			topic = "stingy"
+		}
 	}
 
 	conn, err := natsOptions.Connect()
