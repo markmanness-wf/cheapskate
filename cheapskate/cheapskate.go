@@ -5,16 +5,12 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"time"
 	"math/rand"
 
-	"git.apache.org/thrift.git/lib/go/thrift"
-	"github.com/nats-io/nats"
-
-	"github.com/danielrowles-wf/cheapskate/gen-go/stingy"
-	// w_service "github.com/danielrowles-wf/cheapskate/gen-go/workiva_frugal_api"
-	w_model "github.com/danielrowles-wf/cheapskate/gen-go/workiva_frugal_api_model"
 	"github.com/Workiva/frugal/lib/go"
+	"github.com/Workiva/messaging-sdk/lib/go/sdk"
+	"github.com/danielrowles-wf/cheapskate/gen-go/stingy"
+	w_model "github.com/danielrowles-wf/cheapskate/gen-go/workiva_frugal_api_model"
 )
 
 func Usage() {
@@ -28,47 +24,37 @@ func main() {
 	var (
 		addr = flag.String("addr", "", "NATS address")
 		quotes = flag.String("quotes", "", "Path to quotes file")
-		topic = flag.String("topic", "", "NATS topic to listen on")
+		svcName = flag.String("service-name", "cheapskate", "The name of this service")
 	)
 	flag.Parse()
 
-	handler := NewCheapskate(*quotes)
-
-	if err := runServer(handler, *topic, *addr); err != nil {
+	if err := runServer(*quotes, *svcName, *addr); err != nil {
 		fmt.Println("error running server:", err)
 		os.Exit(1)
 	}
 }
 
-func runServer(handler *Cheapskate, topic string, natsAddr string) error {
-	protocolFactory := thrift.NewTBinaryProtocolFactoryDefault()
-	fprotocolFactory := frugal.NewFProtocolFactory(protocolFactory)
-	ftransportFactory := frugal.NewFMuxTransportFactory(5)
-
-	natsOptions := nats.DefaultOptions
-
+func runServer(quotes string, svcName string, natsAddr string) error {
+	options := sdk.NewOptions(svcName)
 	if natsAddr != "" {
-		natsOptions.Servers = []string{natsAddr}
-	} else if msgUrl := os.Getenv("MSG_URL"); msgUrl != "" {
-		natsOptions.Servers = []string{msgUrl}
+		options.NATSConfig.Servers = []string{natsAddr}
 	}
 
-	// TODO - messaging sdk once MSG-109 is done will change how this is done
-	if topic == "" {
-		if e := os.Getenv("MSG_HEALTH_TOPIC"); e != "" {
-			topic = e
-		} else {
-			topic = "stingy"
-		}
+	client := sdk.New(options)
+	if err := client.Open(); err != nil {
+		log.Printf("Failed to connect to NATS: %s", err)
+		return err
 	}
+	defer client.Close()
 
-	conn, err := natsOptions.Connect()
+	cheapHandler := NewCheapskate(quotes)
+	processor := stingy.NewFStingyServiceProcessor(cheapHandler)
+	service := sdk.Service(svcName)
+	server, err := client.ProvideServer(service, processor)
 	if err != nil {
-		panic(err)
+		log.Printf("Failed to create a server: %s", err)
+		return err
 	}
-	processor := stingy.NewFStingyServiceProcessor(handler)
-	server := frugal.NewFNatsServerFactory(conn, topic, 20*time.Second, 2, frugal.NewFProcessorFactory(processor), ftransportFactory, fprotocolFactory)
-
 	return server.Serve()
 }
 

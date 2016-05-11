@@ -4,13 +4,10 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"time"
 
-	"git.apache.org/thrift.git/lib/go/thrift"
-	"github.com/nats-io/nats"
-
-	w_service "github.com/danielrowles-wf/cheapskate/gen-go/workiva_frugal_api"
 	"github.com/Workiva/frugal/lib/go"
+	"github.com/Workiva/messaging-sdk/lib/go/sdk"
+	w_service "github.com/danielrowles-wf/cheapskate/gen-go/workiva_frugal_api"
 )
 
 func Usage() {
@@ -22,52 +19,49 @@ func Usage() {
 func main() {
 	flag.Usage = Usage
 	var (
-		addr   = flag.String("addr", "", "NATS address")
-		topic  = flag.String("topic", "stingy", "NATS topic to connect to")
-		info   = flag.Bool("info", false, "Call the info method")
-		ping   = flag.Bool("ping", false, "Call the ping method")
-		health = flag.Bool("health", false, "Call the health method")
+		natsAddr = flag.String("addr", "", "NATS address")
+		svcName  = flag.String("service-name", "cheapskate", "Service name")
+		info     = flag.Bool("info", false, "Call the info method")
+		ping     = flag.Bool("ping", false, "Call the ping method")
+		health   = flag.Bool("health", false, "Call the health method")
 	)
 	flag.Parse()
 
-	protocolFactory := thrift.NewTBinaryProtocolFactoryDefault()
-	fprotocolFactory := frugal.NewFProtocolFactory(protocolFactory)
-	ftransportFactory := frugal.NewFMuxTransportFactory(5)
-
-	natsOptions := nats.DefaultOptions
-
-	if *addr != "" {
-		natsOptions.Servers = []string{*addr}
-	} else if msgUrl := os.Getenv("MSG_URL"); msgUrl != "" {
-		natsOptions.Servers = []string{msgUrl}
+	options := sdk.NewOptions(*svcName)
+	if *natsAddr != "" {
+		options.NATSConfig.Servers = []string{*natsAddr}
 	}
 
-	conn, err := natsOptions.Connect()
+	client := sdk.New(options)
+	if err := client.Open(); err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to connect to NATS: %s\n", err)
+		os.Exit(1)
+	}
+	defer client.Close()
+
+	service := sdk.Service(*svcName)
+	transport, protocolFactory, err := client.ProvideClient(service)
 	if err != nil {
-		fmt.Printf("Error connecting to gnatsd: <%s>\n", err)
+		fmt.Fprintf(os.Stderr, "Failed to create NATS client: %s\n", err)
 		os.Exit(1)
 	}
-
-	transport := frugal.NewNatsServiceTTransport(conn, *topic, 5*time.Second, 2)
-	ftransport := ftransportFactory.GetTransport(transport)
-
-	defer ftransport.Close()
-	if err := ftransport.Open(); err != nil {
-		fmt.Printf("Error opening frugal transport: <%s>\n", err)
+	if err := transport.Open(); err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to open NATS transport: %s\n", err)
 		os.Exit(1)
 	}
+	defer transport.Close()
 
-	client := w_service.NewFBaseServiceClient(ftransport, fprotocolFactory)
+	healthClient := w_service.NewFBaseServiceClient(transport, protocolFactory)
 
 	err = nil
 	if *health {
-		err = checkHealth(client)
+		err = checkHealth(healthClient)
 	} else if *info {
-		err = checkInfo(client)
+		err = checkInfo(healthClient)
 	} else if *ping {
-		err = checkPing(client)
+		err = checkPing(healthClient)
 	} else {
-		err = checkHealth(client)
+		err = checkHealth(healthClient)
 	}
 	if err != nil {
 		fmt.Printf("Error connecting to service: %s\n", err)
