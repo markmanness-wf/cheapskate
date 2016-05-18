@@ -4,6 +4,7 @@ base: 'ubuntu/trusty'
 after_install:
   - cp /build/smithy/cheapskate/cheapskate /usr/local/bin/cheapskate
   - cp /build/smithy/client/client /usr/local/bin/cheapclient
+  - cp /build/git/health.sh /usr/local/bin/health.sh
   - chmod 755 /usr/local/bin/cheap*
 
 cmd: ["/usr/local/bin/cheapskate"]
