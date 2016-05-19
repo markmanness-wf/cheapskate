@@ -1,9 +1,12 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"math/rand"
+	"strconv"
+	"time"
 	w_model "github.com/danielrowles-wf/cheapskate/gen-go/workiva_frugal_api_model"
 )
 
@@ -56,14 +59,31 @@ func (h *Cheapskate) GetInfo(cid string) (*w_model.Info, error) {
 func (h *Cheapskate) CheckServiceHealth(cid string) (*w_model.ServiceHealthStatus, error) {
 	log.Printf("Someone called CheckServiceHealth()")
 
+	res := rand.Intn(5)
+	dur := rand.Intn(10)
+
+	time.Sleep(time.Duration(dur) * time.Second)
+
 	out := w_model.NewServiceHealthStatus()
-	out.Status = w_model.HealthCondition_PASS
 	out.Message = fmt.Sprintf("All Ur <%s> Are Belong To DevOps", cid)
 	out.Metadata = map[string]string{
 		"pies": "tasty",
 		"beer": "yummy",
 		"corr": cid,
+		"sleep": strconv.Itoa(dur),
 	}
+	if res == 0 {
+		out.Status = w_model.HealthCondition_PASS
+	} else if res == 1 {
+		out.Status = w_model.HealthCondition_WARN
+	} else if res == 2 {
+		out.Status = w_model.HealthCondition_FAIL
+	} else if res == 3 {
+		out.Status = w_model.HealthCondition_UNKNOWN
+	} else {
+		return nil, errors.New("Borky Borky Bork")
+	}
+
 	if len(h.quotes) > 0 {
 		out.Metadata["quote"] = h.quotes[rand.Intn(len(h.quotes))]
 	}
