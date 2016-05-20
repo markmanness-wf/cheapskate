@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"strconv"
 )
 
 func Usage() {
@@ -19,10 +20,23 @@ func main() {
 		httpAddr = flag.String("listen-http", "", "HTTP listen address")
 		quotes = flag.String("quotes", "", "Path to quotes file")
 		svcName = flag.String("service-name", "cheapskate", "The name of this service")
+		maxDelayFlag = flag.Int("max-delay", -1, "The max delay to use before responding to requests")
 	)
 	flag.Parse()
 
-	cheap := NewCheapskate(*quotes)
+	maxDelay := 10
+	if maxDelayFlag != nil && *maxDelayFlag >= 0 {
+		maxDelay = *maxDelayFlag
+	} else if d := os.Getenv("CHEAP_MAX_DELAY"); d != "" {
+		if i, err := strconv.Atoi(d); err == nil && i >= 0 {
+			maxDelay = i
+		} else {
+			fmt.Printf("Invalid CHEAP_MAX_DELAY <%s>: %s\n", d, err)
+			os.Exit(1)
+		}
+	}
+
+	cheap := NewCheapskate(*quotes, maxDelay)
 
 	bang := make(chan error)
 
@@ -39,7 +53,7 @@ func main() {
 	}
 
 	err := <-bang
-	fmt.Println("error running server:", err)
+	fmt.Printf("error running server: %s\n", err)
 	os.Exit(1)
 }
 

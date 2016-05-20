@@ -11,11 +11,13 @@ import (
 )
 
 type Cheapskate struct {
-	quotes []string
+	quotes    []string
+	maxDelay  int
 }
 
-func NewCheapskate(fortune string) *Cheapskate {
+func NewCheapskate(fortune string, maxDelay int) *Cheapskate {
 	cs := &Cheapskate{
+		maxDelay: maxDelay,
 		quotes: []string{
 			"Never Eat Yellow Snow",
 			"If you don't know what introspection is you need to take a long, hard look at yourself",
@@ -60,7 +62,7 @@ func (h *Cheapskate) CheckServiceHealth(cid string) (*w_model.ServiceHealthStatu
 	log.Printf("Someone called CheckServiceHealth()")
 
 	res := rand.Intn(5)
-	dur := rand.Intn(10)
+	dur := rand.Intn(h.maxDelay)
 
 	time.Sleep(time.Duration(dur) * time.Second)
 
