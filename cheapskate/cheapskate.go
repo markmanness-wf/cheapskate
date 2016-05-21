@@ -16,6 +16,8 @@ type Cheapskate struct {
 }
 
 func NewCheapskate(fortune string, maxDelay int) *Cheapskate {
+	rand.Seed(time.Now().UnixNano())
+
 	cs := &Cheapskate{
 		maxDelay: maxDelay,
 		quotes: []string{
