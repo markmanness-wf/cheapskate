@@ -1,0 +1,102 @@
+---
+name: vessel
+requires: 
+  Workiva/vessel: binary
+
+image: "golang:1.4.2"
+
+run:
+  when-branch-name-is:
+    - .+
+
+scripts:
+  - testing=$PWD
+  - mkdir -p $GOPATH/src/github.com/Workiva
+  - cp -r $testing $GOPATH/src/github.com/Workiva/go-vessel
+  - cd $GOPATH/src/github.com/Workiva/go-vessel
+  - apt-get update
+  - govess=$PWD
+  - go get bitbucket.org/tebeka/go2xunit
+  - go get github.com/tools/godep
+  - cd $GOPATH/src/github.com/tools/godep
+  - go install
+  - cd $govess
+  - cp $SKYNET_APPLICATION_VESSEL $GOPATH/bin/vessel
+  - chmod 755 $GOPATH/bin/vessel
+  - ./scripts/run_tests_skynet.sh
+
+timeout: long
+
+test-reports:
+  - /testing/reports
+
+---
+name: messaging-frontend
+requires: 
+  Workiva/messaging-frontend: binary
+
+image: "golang:1.4.2"
+
+run:
+  when-branch-name-is:
+    - .+
+
+scripts:
+  - testing=$PWD
+  - export VENV="local"
+  - mkdir -p $GOPATH/src/github.com/Workiva
+  - cp -r $testing $GOPATH/src/github.com/Workiva/go-vessel
+  - cd $GOPATH/src/github.com/Workiva/go-vessel
+  - govess=$PWD
+  - go get bitbucket.org/tebeka/go2xunit
+  - go get github.com/tools/godep
+  - cd $GOPATH/src/github.com/tools/godep
+  - go install
+  - cd $govess
+  - cp $SKYNET_APPLICATION_MESSAGING_FRONTEND $GOPATH/bin/w-vessel
+  - chmod 755 $GOPATH/bin/w-vessel
+  - ./scripts/run_tests_skynet_w_vessel.sh
+
+timeout: long
+
+test-reports:
+  - /testing/reports
+
+---
+name: auth
+
+requires: 
+  Workiva/messaging-frontend: binary
+  Workiva/bigsky: tar
+  Workiva/py-iam-services: tar
+
+image: "docker.webfilings.org/messaging/go-vessel-auth:v1"
+
+run:
+  on-pull-request: true
+
+scripts:
+  - testing=$PWD
+  - cp -r $testing $GOPATH/src/github.com/Workiva/go-vessel
+  - cd $GOPATH/src/github.com/Workiva/go-vessel
+  - mkdir py-iam-services
+  - mkdir bigsky
+  - cd py-iam-services
+  - tar -xzf $SKYNET_APPLICATION_PY_IAM_SERVICES -C $PWD
+  - cd ../bigsky
+  - tar -xzf $SKYNET_APPLICATION_BIGSKY -C $PWD
+  - 'sed -i "s/application: blank/application: big-sky/" app.yaml'
+  - sed -i "/requirements.txt/d" requirements_dev.txt
+  - pip install -r requirements_dev.txt
+  - echo n | dev_appserver.py --datastore_path=$GOPATH/src/github.com/Workiva/go-vessel/integration/w-vessel/auth/django_big-sky.datastore app.yaml dispatch.yaml bigskyf1.yaml bigskyf4.yaml validationf1.yaml  ../py-iam-services/iam-services.yaml --port=8085 --admin_port=8005 &
+  - python ../scripts/check_bigsky_running.py
+  - cd ..
+  - cp $SKYNET_APPLICATION_MESSAGING_FRONTEND $GOPATH/bin/w-vessel
+  - chmod 755 $GOPATH/bin/w-vessel
+  - $GOPATH/bin/w-vessel -pubkey-url=http://localhost:8085/iam/oauth2/v1.0/certs -level=debug &
+  - ./scripts/run_tests_auth.sh
+
+timeout: eternal
+
+test-reports:
+  - /testing/reports

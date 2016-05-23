@@ -1,0 +1,8 @@
+.idea
+vessel_log*
+tlsdisabled_tests.xml
+tlsenabled_tests.xml
+batching_tests.xml
+unit_tests.xml
+gotest.out
+test_coverage.txt

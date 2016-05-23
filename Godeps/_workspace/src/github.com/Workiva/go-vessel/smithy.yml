@@ -1,0 +1,14 @@
+project: golang
+language: golang
+
+env:
+    - CODECOV_TOKEN='bQ4MgjJ0G2Y73v8JNX6L7yMK9679nbYB'
+
+script:
+  - ./scripts/run_tests_smithy.sh
+  - pip install goverge
+  - goverge --godep --short --project_import github.com/Workiva/go-vessel
+  - ./scripts/codecov.sh
+
+test_reports:
+  - unit_tests.xml
