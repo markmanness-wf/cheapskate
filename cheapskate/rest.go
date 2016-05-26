@@ -42,7 +42,16 @@ func (r *cheapRest) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 			return
 		}
 		res.WriteHeader(http.StatusOK)
-		res.Write([]byte("Pong\n"))
+		res.Write([]byte("Pong Pong Pong Pong Pong Pong Pong Pong\n"))
+
+		for name, vals := range(req.Header) {
+			for _, val := range(vals) {
+				res.Write([]byte(name))
+				res.Write([]byte(": "))
+				res.Write([]byte(val))
+				res.Write([]byte("\n"))
+			}
+		}
 		return
 	} else if path == "/info" {
 		info, err := r.handler.GetInfo(cid)
