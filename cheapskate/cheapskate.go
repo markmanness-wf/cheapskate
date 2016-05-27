@@ -1,7 +1,6 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 	"log"
 	"math/rand"
@@ -85,7 +84,11 @@ func (h *Cheapskate) CheckServiceHealth(cid string) (*w_model.ServiceHealthStatu
 	} else if res == 3 {
 		out.Status = w_model.HealthCondition_UNKNOWN
 	} else {
-		return nil, errors.New("Borky Borky Bork")
+		return nil, &w_model.BaseError{
+			Code:    314,
+			Message: "Borky Borky Bork",
+		}
+		// return nil, errors.New("Borky Borky Bork")
 	}
 
 	if len(h.quotes) > 0 {
