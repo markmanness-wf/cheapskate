@@ -26,6 +26,7 @@ func Usage() {
 	fmt.Fprintln(os.Stderr, "  void ping()")
 	fmt.Fprintln(os.Stderr, "  ServiceHealthStatus checkServiceHealth()")
 	fmt.Fprintln(os.Stderr, "  Info getInfo()")
+	fmt.Fprintln(os.Stderr, "  Health getHealth()")
 	fmt.Fprintln(os.Stderr)
 	os.Exit(0)
 }
@@ -142,6 +143,14 @@ func main() {
 			flag.Usage()
 		}
 		fmt.Print(client.GetInfo())
+		fmt.Print("\n")
+		break
+	case "getHealth":
+		if flag.NArg()-1 != 0 {
+			fmt.Fprintln(os.Stderr, "GetHealth requires 0 args")
+			flag.Usage()
+		}
+		fmt.Print(client.GetHealth())
 		fmt.Print("\n")
 		break
 	case "":

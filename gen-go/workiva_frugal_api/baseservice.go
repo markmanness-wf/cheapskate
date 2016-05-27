@@ -26,6 +26,9 @@ type BaseService interface { //All Thrift RPC services defined at Workiva inheri
 	CheckServiceHealth() (r *workiva_frugal_api_model.ServiceHealthStatus, err error)
 	// Get the current info about the service
 	GetInfo() (r *workiva_frugal_api_model.Info, err error)
+	// Get the current health of the service.
+	// DEPRECATED: replaced by checkServiceHealth()
+	GetHealth() (r *workiva_frugal_api_model.Health, err error)
 }
 
 //All Thrift RPC services defined at Workiva inherit from this base service,
@@ -126,6 +129,10 @@ func (p *BaseServiceClient) recvPing() (err error) {
 	if err = iprot.ReadMessageEnd(); err != nil {
 		return
 	}
+	if result.BErr != nil {
+		err = result.BErr
+		return
+	}
 	return
 }
 
@@ -197,6 +204,10 @@ func (p *BaseServiceClient) recvCheckServiceHealth() (value *workiva_frugal_api_
 		return
 	}
 	if err = iprot.ReadMessageEnd(); err != nil {
+		return
+	}
+	if result.BErr != nil {
+		err = result.BErr
 		return
 	}
 	value = result.GetSuccess()
@@ -273,6 +284,89 @@ func (p *BaseServiceClient) recvGetInfo() (value *workiva_frugal_api_model.Info,
 	if err = iprot.ReadMessageEnd(); err != nil {
 		return
 	}
+	if result.BErr != nil {
+		err = result.BErr
+		return
+	}
+	value = result.GetSuccess()
+	return
+}
+
+// Get the current health of the service.
+// DEPRECATED: replaced by checkServiceHealth()
+func (p *BaseServiceClient) GetHealth() (r *workiva_frugal_api_model.Health, err error) {
+	if err = p.sendGetHealth(); err != nil {
+		return
+	}
+	return p.recvGetHealth()
+}
+
+func (p *BaseServiceClient) sendGetHealth() (err error) {
+	oprot := p.OutputProtocol
+	if oprot == nil {
+		oprot = p.ProtocolFactory.GetProtocol(p.Transport)
+		p.OutputProtocol = oprot
+	}
+	p.SeqId++
+	if err = oprot.WriteMessageBegin("getHealth", thrift.CALL, p.SeqId); err != nil {
+		return
+	}
+	args := BaseServiceGetHealthArgs{}
+	if err = args.Write(oprot); err != nil {
+		return
+	}
+	if err = oprot.WriteMessageEnd(); err != nil {
+		return
+	}
+	return oprot.Flush()
+}
+
+func (p *BaseServiceClient) recvGetHealth() (value *workiva_frugal_api_model.Health, err error) {
+	iprot := p.InputProtocol
+	if iprot == nil {
+		iprot = p.ProtocolFactory.GetProtocol(p.Transport)
+		p.InputProtocol = iprot
+	}
+	method, mTypeId, seqId, err := iprot.ReadMessageBegin()
+	if err != nil {
+		return
+	}
+	if method != "getHealth" {
+		err = thrift.NewTApplicationException(thrift.WRONG_METHOD_NAME, "getHealth failed: wrong method name")
+		return
+	}
+	if p.SeqId != seqId {
+		err = thrift.NewTApplicationException(thrift.BAD_SEQUENCE_ID, "getHealth failed: out of sequence response")
+		return
+	}
+	if mTypeId == thrift.EXCEPTION {
+		error6 := thrift.NewTApplicationException(thrift.UNKNOWN_APPLICATION_EXCEPTION, "Unknown Exception")
+		var error7 error
+		error7, err = error6.Read(iprot)
+		if err != nil {
+			return
+		}
+		if err = iprot.ReadMessageEnd(); err != nil {
+			return
+		}
+		err = error7
+		return
+	}
+	if mTypeId != thrift.REPLY {
+		err = thrift.NewTApplicationException(thrift.INVALID_MESSAGE_TYPE_EXCEPTION, "getHealth failed: invalid message type")
+		return
+	}
+	result := BaseServiceGetHealthResult{}
+	if err = result.Read(iprot); err != nil {
+		return
+	}
+	if err = iprot.ReadMessageEnd(); err != nil {
+		return
+	}
+	if result.BErr != nil {
+		err = result.BErr
+		return
+	}
 	value = result.GetSuccess()
 	return
 }
@@ -297,11 +391,12 @@ func (p *BaseServiceProcessor) ProcessorMap() map[string]thrift.TProcessorFuncti
 
 func NewBaseServiceProcessor(handler BaseService) *BaseServiceProcessor {
 
-	self6 := &BaseServiceProcessor{handler: handler, processorMap: make(map[string]thrift.TProcessorFunction)}
-	self6.processorMap["ping"] = &baseServiceProcessorPing{handler: handler}
-	self6.processorMap["checkServiceHealth"] = &baseServiceProcessorCheckServiceHealth{handler: handler}
-	self6.processorMap["getInfo"] = &baseServiceProcessorGetInfo{handler: handler}
-	return self6
+	self8 := &BaseServiceProcessor{handler: handler, processorMap: make(map[string]thrift.TProcessorFunction)}
+	self8.processorMap["ping"] = &baseServiceProcessorPing{handler: handler}
+	self8.processorMap["checkServiceHealth"] = &baseServiceProcessorCheckServiceHealth{handler: handler}
+	self8.processorMap["getInfo"] = &baseServiceProcessorGetInfo{handler: handler}
+	self8.processorMap["getHealth"] = &baseServiceProcessorGetHealth{handler: handler}
+	return self8
 }
 
 func (p *BaseServiceProcessor) Process(iprot, oprot thrift.TProtocol) (success bool, err thrift.TException) {
@@ -314,12 +409,12 @@ func (p *BaseServiceProcessor) Process(iprot, oprot thrift.TProtocol) (success b
 	}
 	iprot.Skip(thrift.STRUCT)
 	iprot.ReadMessageEnd()
-	x7 := thrift.NewTApplicationException(thrift.UNKNOWN_METHOD, "Unknown function "+name)
+	x9 := thrift.NewTApplicationException(thrift.UNKNOWN_METHOD, "Unknown function "+name)
 	oprot.WriteMessageBegin(name, thrift.EXCEPTION, seqId)
-	x7.Write(oprot)
+	x9.Write(oprot)
 	oprot.WriteMessageEnd()
 	oprot.Flush()
-	return false, x7
+	return false, x9
 
 }
 
@@ -343,12 +438,17 @@ func (p *baseServiceProcessorPing) Process(seqId int32, iprot, oprot thrift.TPro
 	result := BaseServicePingResult{}
 	var err2 error
 	if err2 = p.handler.Ping(); err2 != nil {
-		x := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing ping: "+err2.Error())
-		oprot.WriteMessageBegin("ping", thrift.EXCEPTION, seqId)
-		x.Write(oprot)
-		oprot.WriteMessageEnd()
-		oprot.Flush()
-		return true, err2
+		switch v := err2.(type) {
+		case *workiva_frugal_api_model.BaseError:
+			result.BErr = v
+		default:
+			x := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing ping: "+err2.Error())
+			oprot.WriteMessageBegin("ping", thrift.EXCEPTION, seqId)
+			x.Write(oprot)
+			oprot.WriteMessageEnd()
+			oprot.Flush()
+			return true, err2
+		}
 	}
 	if err2 = oprot.WriteMessageBegin("ping", thrift.REPLY, seqId); err2 != nil {
 		err = err2
@@ -389,12 +489,17 @@ func (p *baseServiceProcessorCheckServiceHealth) Process(seqId int32, iprot, opr
 	var retval *workiva_frugal_api_model.ServiceHealthStatus
 	var err2 error
 	if retval, err2 = p.handler.CheckServiceHealth(); err2 != nil {
-		x := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing checkServiceHealth: "+err2.Error())
-		oprot.WriteMessageBegin("checkServiceHealth", thrift.EXCEPTION, seqId)
-		x.Write(oprot)
-		oprot.WriteMessageEnd()
-		oprot.Flush()
-		return true, err2
+		switch v := err2.(type) {
+		case *workiva_frugal_api_model.BaseError:
+			result.BErr = v
+		default:
+			x := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing checkServiceHealth: "+err2.Error())
+			oprot.WriteMessageBegin("checkServiceHealth", thrift.EXCEPTION, seqId)
+			x.Write(oprot)
+			oprot.WriteMessageEnd()
+			oprot.Flush()
+			return true, err2
+		}
 	} else {
 		result.Success = retval
 	}
@@ -437,16 +542,74 @@ func (p *baseServiceProcessorGetInfo) Process(seqId int32, iprot, oprot thrift.T
 	var retval *workiva_frugal_api_model.Info
 	var err2 error
 	if retval, err2 = p.handler.GetInfo(); err2 != nil {
-		x := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing getInfo: "+err2.Error())
-		oprot.WriteMessageBegin("getInfo", thrift.EXCEPTION, seqId)
-		x.Write(oprot)
-		oprot.WriteMessageEnd()
-		oprot.Flush()
-		return true, err2
+		switch v := err2.(type) {
+		case *workiva_frugal_api_model.BaseError:
+			result.BErr = v
+		default:
+			x := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing getInfo: "+err2.Error())
+			oprot.WriteMessageBegin("getInfo", thrift.EXCEPTION, seqId)
+			x.Write(oprot)
+			oprot.WriteMessageEnd()
+			oprot.Flush()
+			return true, err2
+		}
 	} else {
 		result.Success = retval
 	}
 	if err2 = oprot.WriteMessageBegin("getInfo", thrift.REPLY, seqId); err2 != nil {
+		err = err2
+	}
+	if err2 = result.Write(oprot); err == nil && err2 != nil {
+		err = err2
+	}
+	if err2 = oprot.WriteMessageEnd(); err == nil && err2 != nil {
+		err = err2
+	}
+	if err2 = oprot.Flush(); err == nil && err2 != nil {
+		err = err2
+	}
+	if err != nil {
+		return
+	}
+	return true, err
+}
+
+type baseServiceProcessorGetHealth struct {
+	handler BaseService
+}
+
+func (p *baseServiceProcessorGetHealth) Process(seqId int32, iprot, oprot thrift.TProtocol) (success bool, err thrift.TException) {
+	args := BaseServiceGetHealthArgs{}
+	if err = args.Read(iprot); err != nil {
+		iprot.ReadMessageEnd()
+		x := thrift.NewTApplicationException(thrift.PROTOCOL_ERROR, err.Error())
+		oprot.WriteMessageBegin("getHealth", thrift.EXCEPTION, seqId)
+		x.Write(oprot)
+		oprot.WriteMessageEnd()
+		oprot.Flush()
+		return false, err
+	}
+
+	iprot.ReadMessageEnd()
+	result := BaseServiceGetHealthResult{}
+	var retval *workiva_frugal_api_model.Health
+	var err2 error
+	if retval, err2 = p.handler.GetHealth(); err2 != nil {
+		switch v := err2.(type) {
+		case *workiva_frugal_api_model.BaseError:
+			result.BErr = v
+		default:
+			x := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing getHealth: "+err2.Error())
+			oprot.WriteMessageBegin("getHealth", thrift.EXCEPTION, seqId)
+			x.Write(oprot)
+			oprot.WriteMessageEnd()
+			oprot.Flush()
+			return true, err2
+		}
+	} else {
+		result.Success = retval
+	}
+	if err2 = oprot.WriteMessageBegin("getHealth", thrift.REPLY, seqId); err2 != nil {
 		err = err2
 	}
 	if err2 = result.Write(oprot); err == nil && err2 != nil {
@@ -519,11 +682,26 @@ func (p *BaseServicePingArgs) String() string {
 	return fmt.Sprintf("BaseServicePingArgs(%+v)", *p)
 }
 
+// Attributes:
+//  - BErr
 type BaseServicePingResult struct {
+	BErr *workiva_frugal_api_model.BaseError `thrift:"bErr,1" db:"bErr" json:"bErr,omitempty"`
 }
 
 func NewBaseServicePingResult() *BaseServicePingResult {
 	return &BaseServicePingResult{}
+}
+
+var BaseServicePingResult_BErr_DEFAULT *workiva_frugal_api_model.BaseError
+
+func (p *BaseServicePingResult) GetBErr() *workiva_frugal_api_model.BaseError {
+	if !p.IsSetBErr() {
+		return BaseServicePingResult_BErr_DEFAULT
+	}
+	return p.BErr
+}
+func (p *BaseServicePingResult) IsSetBErr() bool {
+	return p.BErr != nil
 }
 
 func (p *BaseServicePingResult) Read(iprot thrift.TProtocol) error {
@@ -539,8 +717,15 @@ func (p *BaseServicePingResult) Read(iprot thrift.TProtocol) error {
 		if fieldTypeId == thrift.STOP {
 			break
 		}
-		if err := iprot.Skip(fieldTypeId); err != nil {
-			return err
+		switch fieldId {
+		case 1:
+			if err := p.ReadField1(iprot); err != nil {
+				return err
+			}
+		default:
+			if err := iprot.Skip(fieldTypeId); err != nil {
+				return err
+			}
 		}
 		if err := iprot.ReadFieldEnd(); err != nil {
 			return err
@@ -552,9 +737,20 @@ func (p *BaseServicePingResult) Read(iprot thrift.TProtocol) error {
 	return nil
 }
 
+func (p *BaseServicePingResult) ReadField1(iprot thrift.TProtocol) error {
+	p.BErr = &workiva_frugal_api_model.BaseError{}
+	if err := p.BErr.Read(iprot); err != nil {
+		return thrift.PrependError(fmt.Sprintf("%T error reading struct: ", p.BErr), err)
+	}
+	return nil
+}
+
 func (p *BaseServicePingResult) Write(oprot thrift.TProtocol) error {
 	if err := oprot.WriteStructBegin("ping_result"); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
+	}
+	if err := p.writeField1(oprot); err != nil {
+		return err
 	}
 	if err := oprot.WriteFieldStop(); err != nil {
 		return thrift.PrependError("write field stop error: ", err)
@@ -563,6 +759,21 @@ func (p *BaseServicePingResult) Write(oprot thrift.TProtocol) error {
 		return thrift.PrependError("write struct stop error: ", err)
 	}
 	return nil
+}
+
+func (p *BaseServicePingResult) writeField1(oprot thrift.TProtocol) (err error) {
+	if p.IsSetBErr() {
+		if err := oprot.WriteFieldBegin("bErr", thrift.STRUCT, 1); err != nil {
+			return thrift.PrependError(fmt.Sprintf("%T write field begin error 1:bErr: ", p), err)
+		}
+		if err := p.BErr.Write(oprot); err != nil {
+			return thrift.PrependError(fmt.Sprintf("%T error writing struct: ", p.BErr), err)
+		}
+		if err := oprot.WriteFieldEnd(); err != nil {
+			return thrift.PrependError(fmt.Sprintf("%T write field end error 1:bErr: ", p), err)
+		}
+	}
+	return err
 }
 
 func (p *BaseServicePingResult) String() string {
@@ -627,8 +838,10 @@ func (p *BaseServiceCheckServiceHealthArgs) String() string {
 
 // Attributes:
 //  - Success
+//  - BErr
 type BaseServiceCheckServiceHealthResult struct {
 	Success *workiva_frugal_api_model.ServiceHealthStatus `thrift:"success,0" db:"success" json:"success,omitempty"`
+	BErr    *workiva_frugal_api_model.BaseError           `thrift:"bErr,1" db:"bErr" json:"bErr,omitempty"`
 }
 
 func NewBaseServiceCheckServiceHealthResult() *BaseServiceCheckServiceHealthResult {
@@ -643,8 +856,21 @@ func (p *BaseServiceCheckServiceHealthResult) GetSuccess() *workiva_frugal_api_m
 	}
 	return p.Success
 }
+
+var BaseServiceCheckServiceHealthResult_BErr_DEFAULT *workiva_frugal_api_model.BaseError
+
+func (p *BaseServiceCheckServiceHealthResult) GetBErr() *workiva_frugal_api_model.BaseError {
+	if !p.IsSetBErr() {
+		return BaseServiceCheckServiceHealthResult_BErr_DEFAULT
+	}
+	return p.BErr
+}
 func (p *BaseServiceCheckServiceHealthResult) IsSetSuccess() bool {
 	return p.Success != nil
+}
+
+func (p *BaseServiceCheckServiceHealthResult) IsSetBErr() bool {
+	return p.BErr != nil
 }
 
 func (p *BaseServiceCheckServiceHealthResult) Read(iprot thrift.TProtocol) error {
@@ -665,6 +891,10 @@ func (p *BaseServiceCheckServiceHealthResult) Read(iprot thrift.TProtocol) error
 			if err := p.ReadField0(iprot); err != nil {
 				return err
 			}
+		case 1:
+			if err := p.ReadField1(iprot); err != nil {
+				return err
+			}
 		default:
 			if err := iprot.Skip(fieldTypeId); err != nil {
 				return err
@@ -681,13 +911,17 @@ func (p *BaseServiceCheckServiceHealthResult) Read(iprot thrift.TProtocol) error
 }
 
 func (p *BaseServiceCheckServiceHealthResult) ReadField0(iprot thrift.TProtocol) error {
-	p.Success = &workiva_frugal_api_model.ServiceHealthStatus{
-		Version: "1.0",
-
-		Status: 1,
-	}
+	p.Success = &workiva_frugal_api_model.ServiceHealthStatus{}
 	if err := p.Success.Read(iprot); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T error reading struct: ", p.Success), err)
+	}
+	return nil
+}
+
+func (p *BaseServiceCheckServiceHealthResult) ReadField1(iprot thrift.TProtocol) error {
+	p.BErr = &workiva_frugal_api_model.BaseError{}
+	if err := p.BErr.Read(iprot); err != nil {
+		return thrift.PrependError(fmt.Sprintf("%T error reading struct: ", p.BErr), err)
 	}
 	return nil
 }
@@ -697,6 +931,9 @@ func (p *BaseServiceCheckServiceHealthResult) Write(oprot thrift.TProtocol) erro
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if err := p.writeField0(oprot); err != nil {
+		return err
+	}
+	if err := p.writeField1(oprot); err != nil {
 		return err
 	}
 	if err := oprot.WriteFieldStop(); err != nil {
@@ -718,6 +955,21 @@ func (p *BaseServiceCheckServiceHealthResult) writeField0(oprot thrift.TProtocol
 		}
 		if err := oprot.WriteFieldEnd(); err != nil {
 			return thrift.PrependError(fmt.Sprintf("%T write field end error 0:success: ", p), err)
+		}
+	}
+	return err
+}
+
+func (p *BaseServiceCheckServiceHealthResult) writeField1(oprot thrift.TProtocol) (err error) {
+	if p.IsSetBErr() {
+		if err := oprot.WriteFieldBegin("bErr", thrift.STRUCT, 1); err != nil {
+			return thrift.PrependError(fmt.Sprintf("%T write field begin error 1:bErr: ", p), err)
+		}
+		if err := p.BErr.Write(oprot); err != nil {
+			return thrift.PrependError(fmt.Sprintf("%T error writing struct: ", p.BErr), err)
+		}
+		if err := oprot.WriteFieldEnd(); err != nil {
+			return thrift.PrependError(fmt.Sprintf("%T write field end error 1:bErr: ", p), err)
 		}
 	}
 	return err
@@ -785,8 +1037,10 @@ func (p *BaseServiceGetInfoArgs) String() string {
 
 // Attributes:
 //  - Success
+//  - BErr
 type BaseServiceGetInfoResult struct {
-	Success *workiva_frugal_api_model.Info `thrift:"success,0" db:"success" json:"success,omitempty"`
+	Success *workiva_frugal_api_model.Info      `thrift:"success,0" db:"success" json:"success,omitempty"`
+	BErr    *workiva_frugal_api_model.BaseError `thrift:"bErr,1" db:"bErr" json:"bErr,omitempty"`
 }
 
 func NewBaseServiceGetInfoResult() *BaseServiceGetInfoResult {
@@ -801,8 +1055,21 @@ func (p *BaseServiceGetInfoResult) GetSuccess() *workiva_frugal_api_model.Info {
 	}
 	return p.Success
 }
+
+var BaseServiceGetInfoResult_BErr_DEFAULT *workiva_frugal_api_model.BaseError
+
+func (p *BaseServiceGetInfoResult) GetBErr() *workiva_frugal_api_model.BaseError {
+	if !p.IsSetBErr() {
+		return BaseServiceGetInfoResult_BErr_DEFAULT
+	}
+	return p.BErr
+}
 func (p *BaseServiceGetInfoResult) IsSetSuccess() bool {
 	return p.Success != nil
+}
+
+func (p *BaseServiceGetInfoResult) IsSetBErr() bool {
+	return p.BErr != nil
 }
 
 func (p *BaseServiceGetInfoResult) Read(iprot thrift.TProtocol) error {
@@ -821,6 +1088,10 @@ func (p *BaseServiceGetInfoResult) Read(iprot thrift.TProtocol) error {
 		switch fieldId {
 		case 0:
 			if err := p.ReadField0(iprot); err != nil {
+				return err
+			}
+		case 1:
+			if err := p.ReadField1(iprot); err != nil {
 				return err
 			}
 		default:
@@ -846,11 +1117,22 @@ func (p *BaseServiceGetInfoResult) ReadField0(iprot thrift.TProtocol) error {
 	return nil
 }
 
+func (p *BaseServiceGetInfoResult) ReadField1(iprot thrift.TProtocol) error {
+	p.BErr = &workiva_frugal_api_model.BaseError{}
+	if err := p.BErr.Read(iprot); err != nil {
+		return thrift.PrependError(fmt.Sprintf("%T error reading struct: ", p.BErr), err)
+	}
+	return nil
+}
+
 func (p *BaseServiceGetInfoResult) Write(oprot thrift.TProtocol) error {
 	if err := oprot.WriteStructBegin("getInfo_result"); err != nil {
 		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
 	}
 	if err := p.writeField0(oprot); err != nil {
+		return err
+	}
+	if err := p.writeField1(oprot); err != nil {
 		return err
 	}
 	if err := oprot.WriteFieldStop(); err != nil {
@@ -877,9 +1159,223 @@ func (p *BaseServiceGetInfoResult) writeField0(oprot thrift.TProtocol) (err erro
 	return err
 }
 
+func (p *BaseServiceGetInfoResult) writeField1(oprot thrift.TProtocol) (err error) {
+	if p.IsSetBErr() {
+		if err := oprot.WriteFieldBegin("bErr", thrift.STRUCT, 1); err != nil {
+			return thrift.PrependError(fmt.Sprintf("%T write field begin error 1:bErr: ", p), err)
+		}
+		if err := p.BErr.Write(oprot); err != nil {
+			return thrift.PrependError(fmt.Sprintf("%T error writing struct: ", p.BErr), err)
+		}
+		if err := oprot.WriteFieldEnd(); err != nil {
+			return thrift.PrependError(fmt.Sprintf("%T write field end error 1:bErr: ", p), err)
+		}
+	}
+	return err
+}
+
 func (p *BaseServiceGetInfoResult) String() string {
 	if p == nil {
 		return "<nil>"
 	}
 	return fmt.Sprintf("BaseServiceGetInfoResult(%+v)", *p)
+}
+
+type BaseServiceGetHealthArgs struct {
+}
+
+func NewBaseServiceGetHealthArgs() *BaseServiceGetHealthArgs {
+	return &BaseServiceGetHealthArgs{}
+}
+
+func (p *BaseServiceGetHealthArgs) Read(iprot thrift.TProtocol) error {
+	if _, err := iprot.ReadStructBegin(); err != nil {
+		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
+	}
+
+	for {
+		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin()
+		if err != nil {
+			return thrift.PrependError(fmt.Sprintf("%T field %d read error: ", p, fieldId), err)
+		}
+		if fieldTypeId == thrift.STOP {
+			break
+		}
+		if err := iprot.Skip(fieldTypeId); err != nil {
+			return err
+		}
+		if err := iprot.ReadFieldEnd(); err != nil {
+			return err
+		}
+	}
+	if err := iprot.ReadStructEnd(); err != nil {
+		return thrift.PrependError(fmt.Sprintf("%T read struct end error: ", p), err)
+	}
+	return nil
+}
+
+func (p *BaseServiceGetHealthArgs) Write(oprot thrift.TProtocol) error {
+	if err := oprot.WriteStructBegin("getHealth_args"); err != nil {
+		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
+	}
+	if err := oprot.WriteFieldStop(); err != nil {
+		return thrift.PrependError("write field stop error: ", err)
+	}
+	if err := oprot.WriteStructEnd(); err != nil {
+		return thrift.PrependError("write struct stop error: ", err)
+	}
+	return nil
+}
+
+func (p *BaseServiceGetHealthArgs) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("BaseServiceGetHealthArgs(%+v)", *p)
+}
+
+// Attributes:
+//  - Success
+//  - BErr
+type BaseServiceGetHealthResult struct {
+	Success *workiva_frugal_api_model.Health    `thrift:"success,0" db:"success" json:"success,omitempty"`
+	BErr    *workiva_frugal_api_model.BaseError `thrift:"bErr,1" db:"bErr" json:"bErr,omitempty"`
+}
+
+func NewBaseServiceGetHealthResult() *BaseServiceGetHealthResult {
+	return &BaseServiceGetHealthResult{}
+}
+
+var BaseServiceGetHealthResult_Success_DEFAULT *workiva_frugal_api_model.Health
+
+func (p *BaseServiceGetHealthResult) GetSuccess() *workiva_frugal_api_model.Health {
+	if !p.IsSetSuccess() {
+		return BaseServiceGetHealthResult_Success_DEFAULT
+	}
+	return p.Success
+}
+
+var BaseServiceGetHealthResult_BErr_DEFAULT *workiva_frugal_api_model.BaseError
+
+func (p *BaseServiceGetHealthResult) GetBErr() *workiva_frugal_api_model.BaseError {
+	if !p.IsSetBErr() {
+		return BaseServiceGetHealthResult_BErr_DEFAULT
+	}
+	return p.BErr
+}
+func (p *BaseServiceGetHealthResult) IsSetSuccess() bool {
+	return p.Success != nil
+}
+
+func (p *BaseServiceGetHealthResult) IsSetBErr() bool {
+	return p.BErr != nil
+}
+
+func (p *BaseServiceGetHealthResult) Read(iprot thrift.TProtocol) error {
+	if _, err := iprot.ReadStructBegin(); err != nil {
+		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
+	}
+
+	for {
+		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin()
+		if err != nil {
+			return thrift.PrependError(fmt.Sprintf("%T field %d read error: ", p, fieldId), err)
+		}
+		if fieldTypeId == thrift.STOP {
+			break
+		}
+		switch fieldId {
+		case 0:
+			if err := p.ReadField0(iprot); err != nil {
+				return err
+			}
+		case 1:
+			if err := p.ReadField1(iprot); err != nil {
+				return err
+			}
+		default:
+			if err := iprot.Skip(fieldTypeId); err != nil {
+				return err
+			}
+		}
+		if err := iprot.ReadFieldEnd(); err != nil {
+			return err
+		}
+	}
+	if err := iprot.ReadStructEnd(); err != nil {
+		return thrift.PrependError(fmt.Sprintf("%T read struct end error: ", p), err)
+	}
+	return nil
+}
+
+func (p *BaseServiceGetHealthResult) ReadField0(iprot thrift.TProtocol) error {
+	p.Success = &workiva_frugal_api_model.Health{}
+	if err := p.Success.Read(iprot); err != nil {
+		return thrift.PrependError(fmt.Sprintf("%T error reading struct: ", p.Success), err)
+	}
+	return nil
+}
+
+func (p *BaseServiceGetHealthResult) ReadField1(iprot thrift.TProtocol) error {
+	p.BErr = &workiva_frugal_api_model.BaseError{}
+	if err := p.BErr.Read(iprot); err != nil {
+		return thrift.PrependError(fmt.Sprintf("%T error reading struct: ", p.BErr), err)
+	}
+	return nil
+}
+
+func (p *BaseServiceGetHealthResult) Write(oprot thrift.TProtocol) error {
+	if err := oprot.WriteStructBegin("getHealth_result"); err != nil {
+		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
+	}
+	if err := p.writeField0(oprot); err != nil {
+		return err
+	}
+	if err := p.writeField1(oprot); err != nil {
+		return err
+	}
+	if err := oprot.WriteFieldStop(); err != nil {
+		return thrift.PrependError("write field stop error: ", err)
+	}
+	if err := oprot.WriteStructEnd(); err != nil {
+		return thrift.PrependError("write struct stop error: ", err)
+	}
+	return nil
+}
+
+func (p *BaseServiceGetHealthResult) writeField0(oprot thrift.TProtocol) (err error) {
+	if p.IsSetSuccess() {
+		if err := oprot.WriteFieldBegin("success", thrift.STRUCT, 0); err != nil {
+			return thrift.PrependError(fmt.Sprintf("%T write field begin error 0:success: ", p), err)
+		}
+		if err := p.Success.Write(oprot); err != nil {
+			return thrift.PrependError(fmt.Sprintf("%T error writing struct: ", p.Success), err)
+		}
+		if err := oprot.WriteFieldEnd(); err != nil {
+			return thrift.PrependError(fmt.Sprintf("%T write field end error 0:success: ", p), err)
+		}
+	}
+	return err
+}
+
+func (p *BaseServiceGetHealthResult) writeField1(oprot thrift.TProtocol) (err error) {
+	if p.IsSetBErr() {
+		if err := oprot.WriteFieldBegin("bErr", thrift.STRUCT, 1); err != nil {
+			return thrift.PrependError(fmt.Sprintf("%T write field begin error 1:bErr: ", p), err)
+		}
+		if err := p.BErr.Write(oprot); err != nil {
+			return thrift.PrependError(fmt.Sprintf("%T error writing struct: ", p.BErr), err)
+		}
+		if err := oprot.WriteFieldEnd(); err != nil {
+			return thrift.PrependError(fmt.Sprintf("%T write field end error 1:bErr: ", p), err)
+		}
+	}
+	return err
+}
+
+func (p *BaseServiceGetHealthResult) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("BaseServiceGetHealthResult(%+v)", *p)
 }

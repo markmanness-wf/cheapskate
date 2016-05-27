@@ -53,6 +53,21 @@ func (n *cheapNats) GetInfo(ctx *frugal.FContext) (*w_model.Info, error) {
 	return n.handler.GetInfo(ctx.CorrelationID())
 }
 
+func (n *cheapNats) GetHealth(ctx *frugal.FContext) (*w_model.Health, error) {
+	health, err := n.handler.CheckServiceHealth(ctx.CorrelationID())
+	if err != nil {
+		return nil, err
+	}
+	out := w_model.NewHealth()
+	if health.Status == w_model.HealthCondition_PASS {
+		out.Status = w_model.Status_HEALTHY
+	} else {
+		out.Status = w_model.Status_ERROR
+	}
+	out.Message = health.Message
+	return out, nil
+}
+
 func (n *cheapNats) CheckServiceHealth(ctx *frugal.FContext) (*w_model.ServiceHealthStatus, error) {
 	return n.handler.CheckServiceHealth(ctx.CorrelationID())
 }

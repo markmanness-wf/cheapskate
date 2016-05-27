@@ -5,12 +5,12 @@ stingy.frugal:
 base_service.frugal:
   git:
     repo: "github.com/Workiva/messaging-sdk"
-    ref: "bb3aacff8b0ef9bd61c37f206dccc289c640ec6b"
+    ref: "c572b3a9e4e1e217a8dc8b14fac57da91f639bee"
   remote-target: "base_service.frugal"
   requires: ["base_model.frugal"]
 
 base_model.frugal:
   git:
     repo: "github.com/Workiva/messaging-sdk"
-    ref: "bb3aacff8b0ef9bd61c37f206dccc289c640ec6b"
+    ref: "c572b3a9e4e1e217a8dc8b14fac57da91f639bee"
   remote-target: "base_model.frugal"

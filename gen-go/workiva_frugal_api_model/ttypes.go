@@ -18,6 +18,7 @@ var _ = bytes.Equal
 
 var GoUnusedProtection__ int
 
+//The condition of a service, as returned in a ServiceHealthStatus
 type HealthCondition int64
 
 const (
@@ -80,6 +81,81 @@ func (p *HealthCondition) Scan(value interface{}) error {
 }
 
 func (p *HealthCondition) Value() (driver.Value, error) {
+	if p == nil {
+		return nil, nil
+	}
+	return int64(*p), nil
+}
+
+//Status codes for service health
+//DEPRECATED: replaced by HealthCondition for new checkServiceHealth() endpoint
+type Status int64
+
+const (
+	Status_STARTING        Status = 1
+	Status_STOPPING        Status = 2
+	Status_HEALTHY         Status = 3
+	Status_DEPENDENCY_DOWN Status = 4
+	Status_ERROR           Status = 5
+)
+
+func (p Status) String() string {
+	switch p {
+	case Status_STARTING:
+		return "STARTING"
+	case Status_STOPPING:
+		return "STOPPING"
+	case Status_HEALTHY:
+		return "HEALTHY"
+	case Status_DEPENDENCY_DOWN:
+		return "DEPENDENCY_DOWN"
+	case Status_ERROR:
+		return "ERROR"
+	}
+	return "<UNSET>"
+}
+
+func StatusFromString(s string) (Status, error) {
+	switch s {
+	case "STARTING":
+		return Status_STARTING, nil
+	case "STOPPING":
+		return Status_STOPPING, nil
+	case "HEALTHY":
+		return Status_HEALTHY, nil
+	case "DEPENDENCY_DOWN":
+		return Status_DEPENDENCY_DOWN, nil
+	case "ERROR":
+		return Status_ERROR, nil
+	}
+	return Status(0), fmt.Errorf("not a valid Status string")
+}
+
+func StatusPtr(v Status) *Status { return &v }
+
+func (p Status) MarshalText() ([]byte, error) {
+	return []byte(p.String()), nil
+}
+
+func (p *Status) UnmarshalText(text []byte) error {
+	q, err := StatusFromString(string(text))
+	if err != nil {
+		return err
+	}
+	*p = q
+	return nil
+}
+
+func (p *Status) Scan(value interface{}) error {
+	v, ok := value.(int64)
+	if !ok {
+		return errors.New("Scan value is not int64")
+	}
+	*p = Status(v)
+	return nil
+}
+
+func (p *Status) Value() (driver.Value, error) {
 	if p == nil {
 		return nil, nil
 	}
@@ -368,11 +444,13 @@ func (p *Info) String() string {
 	return fmt.Sprintf("Info(%+v)", *p)
 }
 
+// A description of the health of a service
+//
 // Attributes:
-//  - Version
-//  - Status
-//  - Message
-//  - Metadata
+//  - Version: The version of the service
+//  - Status: The health status of the service
+//  - Message: A descriptive message that elaborates upon a status
+//  - Metadata: Additional service-specific metadata
 type ServiceHealthStatus struct {
 	Version  string            `thrift:"version,1,required" db:"version" json:"version"`
 	Status   HealthCondition   `thrift:"status,2,required" db:"status" json:"status"`
@@ -381,11 +459,7 @@ type ServiceHealthStatus struct {
 }
 
 func NewServiceHealthStatus() *ServiceHealthStatus {
-	return &ServiceHealthStatus{
-		Version: "1.0",
-
-		Status: 1,
-	}
+	return &ServiceHealthStatus{}
 }
 
 func (p *ServiceHealthStatus) GetVersion() string {
@@ -621,4 +695,266 @@ func (p *ServiceHealthStatus) String() string {
 		return "<nil>"
 	}
 	return fmt.Sprintf("ServiceHealthStatus(%+v)", *p)
+}
+
+// An error arising while trying to serve a BaseService request
+//
+// Attributes:
+//  - Code: The specific problem flagged by this error, if any
+//  - Message: A descriptive error message
+type BaseError struct {
+	Code    int32  `thrift:"code,1" db:"code" json:"code"`
+	Message string `thrift:"message,2" db:"message" json:"message"`
+}
+
+func NewBaseError() *BaseError {
+	return &BaseError{}
+}
+
+func (p *BaseError) GetCode() int32 {
+	return p.Code
+}
+
+func (p *BaseError) GetMessage() string {
+	return p.Message
+}
+func (p *BaseError) Read(iprot thrift.TProtocol) error {
+	if _, err := iprot.ReadStructBegin(); err != nil {
+		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
+	}
+
+	for {
+		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin()
+		if err != nil {
+			return thrift.PrependError(fmt.Sprintf("%T field %d read error: ", p, fieldId), err)
+		}
+		if fieldTypeId == thrift.STOP {
+			break
+		}
+		switch fieldId {
+		case 1:
+			if err := p.ReadField1(iprot); err != nil {
+				return err
+			}
+		case 2:
+			if err := p.ReadField2(iprot); err != nil {
+				return err
+			}
+		default:
+			if err := iprot.Skip(fieldTypeId); err != nil {
+				return err
+			}
+		}
+		if err := iprot.ReadFieldEnd(); err != nil {
+			return err
+		}
+	}
+	if err := iprot.ReadStructEnd(); err != nil {
+		return thrift.PrependError(fmt.Sprintf("%T read struct end error: ", p), err)
+	}
+	return nil
+}
+
+func (p *BaseError) ReadField1(iprot thrift.TProtocol) error {
+	if v, err := iprot.ReadI32(); err != nil {
+		return thrift.PrependError("error reading field 1: ", err)
+	} else {
+		p.Code = v
+	}
+	return nil
+}
+
+func (p *BaseError) ReadField2(iprot thrift.TProtocol) error {
+	if v, err := iprot.ReadString(); err != nil {
+		return thrift.PrependError("error reading field 2: ", err)
+	} else {
+		p.Message = v
+	}
+	return nil
+}
+
+func (p *BaseError) Write(oprot thrift.TProtocol) error {
+	if err := oprot.WriteStructBegin("BaseError"); err != nil {
+		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
+	}
+	if err := p.writeField1(oprot); err != nil {
+		return err
+	}
+	if err := p.writeField2(oprot); err != nil {
+		return err
+	}
+	if err := oprot.WriteFieldStop(); err != nil {
+		return thrift.PrependError("write field stop error: ", err)
+	}
+	if err := oprot.WriteStructEnd(); err != nil {
+		return thrift.PrependError("write struct stop error: ", err)
+	}
+	return nil
+}
+
+func (p *BaseError) writeField1(oprot thrift.TProtocol) (err error) {
+	if err := oprot.WriteFieldBegin("code", thrift.I32, 1); err != nil {
+		return thrift.PrependError(fmt.Sprintf("%T write field begin error 1:code: ", p), err)
+	}
+	if err := oprot.WriteI32(int32(p.Code)); err != nil {
+		return thrift.PrependError(fmt.Sprintf("%T.code (1) field write error: ", p), err)
+	}
+	if err := oprot.WriteFieldEnd(); err != nil {
+		return thrift.PrependError(fmt.Sprintf("%T write field end error 1:code: ", p), err)
+	}
+	return err
+}
+
+func (p *BaseError) writeField2(oprot thrift.TProtocol) (err error) {
+	if err := oprot.WriteFieldBegin("message", thrift.STRING, 2); err != nil {
+		return thrift.PrependError(fmt.Sprintf("%T write field begin error 2:message: ", p), err)
+	}
+	if err := oprot.WriteString(string(p.Message)); err != nil {
+		return thrift.PrependError(fmt.Sprintf("%T.message (2) field write error: ", p), err)
+	}
+	if err := oprot.WriteFieldEnd(); err != nil {
+		return thrift.PrependError(fmt.Sprintf("%T write field end error 2:message: ", p), err)
+	}
+	return err
+}
+
+func (p *BaseError) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("BaseError(%+v)", *p)
+}
+
+func (p *BaseError) Error() string {
+	return p.String()
+}
+
+// Describes the health of the service
+// DEPRECATED: replaced by ServiceHealthStatus for new checkServiceHealth() endpoint
+//
+// Attributes:
+//  - Status: Status code
+//  - Message: Descriptive message explaining the status
+type Health struct {
+	Status  Status `thrift:"status,1" db:"status" json:"status"`
+	Message string `thrift:"message,2" db:"message" json:"message"`
+}
+
+func NewHealth() *Health {
+	return &Health{}
+}
+
+func (p *Health) GetStatus() Status {
+	return p.Status
+}
+
+func (p *Health) GetMessage() string {
+	return p.Message
+}
+func (p *Health) Read(iprot thrift.TProtocol) error {
+	if _, err := iprot.ReadStructBegin(); err != nil {
+		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
+	}
+
+	for {
+		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin()
+		if err != nil {
+			return thrift.PrependError(fmt.Sprintf("%T field %d read error: ", p, fieldId), err)
+		}
+		if fieldTypeId == thrift.STOP {
+			break
+		}
+		switch fieldId {
+		case 1:
+			if err := p.ReadField1(iprot); err != nil {
+				return err
+			}
+		case 2:
+			if err := p.ReadField2(iprot); err != nil {
+				return err
+			}
+		default:
+			if err := iprot.Skip(fieldTypeId); err != nil {
+				return err
+			}
+		}
+		if err := iprot.ReadFieldEnd(); err != nil {
+			return err
+		}
+	}
+	if err := iprot.ReadStructEnd(); err != nil {
+		return thrift.PrependError(fmt.Sprintf("%T read struct end error: ", p), err)
+	}
+	return nil
+}
+
+func (p *Health) ReadField1(iprot thrift.TProtocol) error {
+	if v, err := iprot.ReadI32(); err != nil {
+		return thrift.PrependError("error reading field 1: ", err)
+	} else {
+		temp := Status(v)
+		p.Status = temp
+	}
+	return nil
+}
+
+func (p *Health) ReadField2(iprot thrift.TProtocol) error {
+	if v, err := iprot.ReadString(); err != nil {
+		return thrift.PrependError("error reading field 2: ", err)
+	} else {
+		p.Message = v
+	}
+	return nil
+}
+
+func (p *Health) Write(oprot thrift.TProtocol) error {
+	if err := oprot.WriteStructBegin("Health"); err != nil {
+		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
+	}
+	if err := p.writeField1(oprot); err != nil {
+		return err
+	}
+	if err := p.writeField2(oprot); err != nil {
+		return err
+	}
+	if err := oprot.WriteFieldStop(); err != nil {
+		return thrift.PrependError("write field stop error: ", err)
+	}
+	if err := oprot.WriteStructEnd(); err != nil {
+		return thrift.PrependError("write struct stop error: ", err)
+	}
+	return nil
+}
+
+func (p *Health) writeField1(oprot thrift.TProtocol) (err error) {
+	if err := oprot.WriteFieldBegin("status", thrift.I32, 1); err != nil {
+		return thrift.PrependError(fmt.Sprintf("%T write field begin error 1:status: ", p), err)
+	}
+	if err := oprot.WriteI32(int32(p.Status)); err != nil {
+		return thrift.PrependError(fmt.Sprintf("%T.status (1) field write error: ", p), err)
+	}
+	if err := oprot.WriteFieldEnd(); err != nil {
+		return thrift.PrependError(fmt.Sprintf("%T write field end error 1:status: ", p), err)
+	}
+	return err
+}
+
+func (p *Health) writeField2(oprot thrift.TProtocol) (err error) {
+	if err := oprot.WriteFieldBegin("message", thrift.STRING, 2); err != nil {
+		return thrift.PrependError(fmt.Sprintf("%T write field begin error 2:message: ", p), err)
+	}
+	if err := oprot.WriteString(string(p.Message)); err != nil {
+		return thrift.PrependError(fmt.Sprintf("%T.message (2) field write error: ", p), err)
+	}
+	if err := oprot.WriteFieldEnd(); err != nil {
+		return thrift.PrependError(fmt.Sprintf("%T write field end error 2:message: ", p), err)
+	}
+	return err
+}
+
+func (p *Health) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("Health(%+v)", *p)
 }
