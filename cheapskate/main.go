@@ -17,7 +17,7 @@ func main() {
 	flag.Usage = Usage
 	var (
 		natsAddr = flag.String("nats-addr", "", "NATS address")
-		httpAddr = flag.String("listen-http", "", "HTTP listen address")
+		httpAddr = flag.String("listen-http", "127.0.0.1:8888", "HTTP listen address")
 		quotes = flag.String("quotes", "", "Path to quotes file")
 		svcName = flag.String("service-name", "cheapskate", "The name of this service")
 		maxDelayFlag = flag.Int("max-delay", -1, "The max delay to use before responding to requests")
@@ -37,21 +37,29 @@ func main() {
 	}
 
 	cheap := NewCheapskate(*quotes, maxDelay)
-
 	bang := make(chan error)
+	svcCnt := 0
 
-	go func () {
-		n := NewNatsServer(cheap, *svcName, *natsAddr)
-		bang <- n.ListenAndServe()
-	}()
-
-	if *httpAddr != "" {
+	if (natsAddr != nil && *natsAddr != "") || os.Getenv("MSG_URL") != "" {
+		fmt.Printf("Connect to nats and listen\n")
+		svcCnt++
+		go func () {
+			n := NewNatsServer(cheap, *svcName, *natsAddr)
+			bang <- n.ListenAndServe()
+		}()
+	}
+	if httpAddr != nil && *httpAddr != "" {
+		fmt.Printf("Start http server on <%s>\n", *httpAddr)
+		svcCnt++
 		go func() {
 			h := NewRestServer(cheap, *httpAddr)
 			bang <- h.ListenAndServe()
 		}()
 	}
-
+	if svcCnt == 0 {
+		fmt.Printf("No --nats-addr, no --listen-http, no MSG_URL environment variable\n")
+		os.Exit(1)
+	}
 	err := <-bang
 	fmt.Printf("error running server: %s\n", err)
 	os.Exit(1)
