@@ -12,13 +12,17 @@ import (
 type Cheapskate struct {
 	quotes    []string
 	maxDelay  int
+	fixedDelay int
+	fixedResult int
 }
 
-func NewCheapskate(fortune string, maxDelay int) *Cheapskate {
+func NewCheapskate(fortune string, maxDelay int, fixedDelay int, fixedResult) *Cheapskate {
 	rand.Seed(time.Now().UnixNano())
 
 	cs := &Cheapskate{
 		maxDelay: maxDelay,
+		fixedDelay: fixedDelay,
+		fixedResult: fixedResult,
 		quotes: []string{
 			"Never Eat Yellow Snow",
 			"If you don't know what introspection is you need to take a long, hard look at yourself",
@@ -62,7 +66,11 @@ func (h *Cheapskate) GetInfo(cid string) (*w_model.Info, error) {
 func (h *Cheapskate) CheckServiceHealth(cid string) (*w_model.ServiceHealthStatus, error) {
 	log.Printf("Someone called CheckServiceHealth()")
 
-	res := rand.Intn(5)
+	if h.fixedResult >=0 {
+		res := h.fixedResult
+	} else {
+		res := rand.Intn(5)
+	}
 	dur := rand.Intn(h.maxDelay)
 
 	time.Sleep(time.Duration(dur) * time.Second)

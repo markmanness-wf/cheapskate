@@ -21,6 +21,8 @@ func main() {
 		quotes = flag.String("quotes", "", "Path to quotes file")
 		svcName = flag.String("service-name", "cheapskate", "The name of this service")
 		maxDelayFlag = flag.Int("max-delay", -1, "The max delay to use before responding to requests")
+                fixedDelayFlag = flag.Int("fixed-delay", -1, "A fixed delay to use before responding to requests")
+		fixedResultFlag = flag.Int("fixed-result", -1, "Have the same result return every time"
 	)
 	flag.Parse()
 
@@ -35,8 +37,12 @@ func main() {
 			os.Exit(1)
 		}
 	}
+	fixedDelay := 0
+	if fixedDelayFlag != nil && *maxDelayFlag >=0 {
+		fixedDelay = *fixedDelayFlag
+	}
 
-	cheap := NewCheapskate(*quotes, maxDelay)
+	cheap := NewCheapskate(*quotes, maxDelay, fixedDelay, *fixedResult)
 	bang := make(chan error)
 	svcCnt := 0
 
