@@ -22,7 +22,7 @@ func main() {
 		svcName = flag.String("service-name", "cheapskate", "The name of this service")
 		maxDelayFlag = flag.Int("max-delay", -1, "The max delay to use before responding to requests")
                 fixedDelayFlag = flag.Int("fixed-delay", -1, "A fixed delay to use before responding to requests")
-		fixedResultFlag = flag.Int("fixed-result", -1, "Have the same result return every time"
+		fixedResultFlag = flag.Int("fixed-result", -1, "Have the same result return every time")
 	)
 	flag.Parse()
 
