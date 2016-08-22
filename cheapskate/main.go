@@ -42,7 +42,7 @@ func main() {
 		fixedDelay = *fixedDelayFlag
 	}
 
-	cheap := NewCheapskate(*quotes, maxDelay, fixedDelay, *fixedResult)
+	cheap := NewCheapskate(*quotes, maxDelay, fixedDelay, *fixedResultFlag)
 	bang := make(chan error)
 	svcCnt := 0
 
