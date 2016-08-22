@@ -16,7 +16,7 @@ type Cheapskate struct {
 	fixedResult int
 }
 
-func NewCheapskate(fortune string, maxDelay int, fixedDelay int, fixedResult) *Cheapskate {
+func NewCheapskate(fortune string, maxDelay, fixedDelay, fixedResult int) *Cheapskate {
 	rand.Seed(time.Now().UnixNano())
 
 	cs := &Cheapskate{
