@@ -66,13 +66,25 @@ func (h *Cheapskate) GetInfo(cid string) (*w_model.Info, error) {
 func (h *Cheapskate) CheckServiceHealth(cid string) (*w_model.ServiceHealthStatus, error) {
 	log.Printf("Someone called CheckServiceHealth()")
 	var res int
+	var fixedSleep int
+	var variableSleepMax int
 
-	if h.fixedResult >=0 {
+	if h.fixedResult >= 0 {
 		res = h.fixedResult
 	} else {
 		res = rand.Intn(5)
 	}
-	dur := rand.Intn(h.maxDelay)
+
+	if h.fixedDelay >= 0 {
+		fixedSleep = h.fixedDelay
+		variableSleepMax = h.maxDelay - h.fixedDelay
+	} else {
+		fixedSleep = 0
+		variableSleepMax = h.maxDelay
+	}
+
+	dur := rand.Intn(variableSleepMax)
+	dur += fixedSleep
 
 	time.Sleep(time.Duration(dur) * time.Second)
 
