@@ -11,21 +11,24 @@ import (
 type cheapRest struct {
 	handler    *Cheapskate
 	listenAddr string
+	timeout int
 }
 
-func NewRestServer(handler *Cheapskate, listenAddr string) *cheapRest {
+func NewRestServer(handler *Cheapskate, listenAddr string, timeout int) *cheapRest {
 	return &cheapRest{
 		handler:    handler,
 		listenAddr: listenAddr,
+		timeout: timeout,
 	}
 }
 
 func (r *cheapRest) ListenAndServe() error {
+	
 	server := &http.Server{
 		Addr:           r.listenAddr,
 		Handler:        r,
-		ReadTimeout:    10 * time.Second,
-		WriteTimeout:   10 * time.Second,
+		ReadTimeout:    timeout * time.Second,
+		WriteTimeout:   timeout * time.Second,
 		MaxHeaderBytes: 65535,
 	}
 	return server.ListenAndServe()

@@ -58,7 +58,7 @@ func main() {
 		fmt.Printf("Start http server on <%s>\n", *httpAddr)
 		svcCnt++
 		go func() {
-			h := NewRestServer(cheap, *httpAddr)
+			h := NewRestServer(cheap, *httpAddr, maxDelay + 2)
 			bang <- h.ListenAndServe()
 		}()
 	}
