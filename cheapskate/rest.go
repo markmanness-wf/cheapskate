@@ -11,14 +11,14 @@ import (
 type cheapRest struct {
 	handler    *Cheapskate
 	listenAddr string
-	timeout int
+	timeout time.Duration
 }
 
 func NewRestServer(handler *Cheapskate, listenAddr string, timeout int) *cheapRest {
 	return &cheapRest{
 		handler:    handler,
 		listenAddr: listenAddr,
-		timeout: timeout,
+		timeout: time.Duration(timeout),
 	}
 }
 
