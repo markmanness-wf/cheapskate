@@ -27,8 +27,8 @@ func (r *cheapRest) ListenAndServe() error {
 	server := &http.Server{
 		Addr:           r.listenAddr,
 		Handler:        r,
-		ReadTimeout:    timeout * time.Second,
-		WriteTimeout:   timeout * time.Second,
+		ReadTimeout:    r.timeout * time.Second,
+		WriteTimeout:   r.timeout * time.Second,
 		MaxHeaderBytes: 65535,
 	}
 	return server.ListenAndServe()
