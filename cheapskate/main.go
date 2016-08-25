@@ -42,15 +42,26 @@ func main() {
 		fixedDelay = *fixedDelayFlag
 	}
 
+	msgHealthTopic := ""
+	if msgHealthTopicFlag != nil && *msgHealthTopicFlag != "" {
+		msgHealthTopic = *msgHealthTopic
+	} else if h := os.Getenv("MSG_HEALTH_TOPIC"); h != "" {
+		msgHealthTopic = h
+	}
+
 	cheap := NewCheapskate(*quotes, maxDelay, fixedDelay, *fixedResultFlag)
 	bang := make(chan error)
 	svcCnt := 0
 
-	if (natsAddr != nil && *natsAddr != "") || os.Getenv("MSG_URL") != "" {
+	if ((natsAddr != nil && *natsAddr != "") || os.Getenv("MSG_URL") != "") && msgHealthTopic != "" {
 		fmt.Printf("Connect to nats and listen\n")
 		svcCnt++
 		go func () {
 			n := NewNatsServer(cheap, *svcName, *natsAddr)
+			bang <- n.ListenAndServe()
+		}()
+		go func () {
+			n := NewNatsServer(cheap, msgHealthTopic, *natsAddr)
 			bang <- n.ListenAndServe()
 		}()
 	}
