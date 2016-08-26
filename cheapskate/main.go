@@ -17,6 +17,7 @@ func main() {
 	flag.Usage = Usage
 	var (
 		natsAddr = flag.String("nats-addr", "", "NATS address")
+		msgHealthTopicFlag = flag.String("nats-health-topic", "", "Health topic within NATS")
 		httpAddr = flag.String("listen-http", "127.0.0.1:8888", "HTTP listen address")
 		quotes = flag.String("quotes", "", "Path to quotes file")
 		svcName = flag.String("service-name", "cheapskate", "The name of this service")
