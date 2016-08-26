@@ -45,7 +45,7 @@ func main() {
 
 	msgHealthTopic := ""
 	if msgHealthTopicFlag != nil && *msgHealthTopicFlag != "" {
-		msgHealthTopic = *msgHealthTopic
+		msgHealthTopic = *msgHealthTopicFlag
 	} else if h := os.Getenv("MSG_HEALTH_TOPIC"); h != "" {
 		msgHealthTopic = h
 	}
